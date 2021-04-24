@@ -85,6 +85,6 @@ describe('reversePathsToWalk({folder, path})', () => {
     const folder = '/where/the/code/lives'
     const result = reversePathsToWalk({ folder, path })
     expect(result.length).toEqual(5)
-    expect(result[2]).toEqual('/where/the')
+    expect(result[2]).toContain(path.join('where', 'the'))
   })
 })
