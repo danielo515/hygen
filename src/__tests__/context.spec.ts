@@ -7,9 +7,9 @@ describe('context', () => {
     expect(ctx).toMatchSnapshot()
   })
   it('allows helpers to be initialized with current context', () => {
-    const helpers = (args, context) => ({
+    const helpers = (args, ctx) => ({
       testArgs: () => args,
-      testCtx: () => context,
+      testCtx: () => ctx,
     })
     const locals = {}
     const config = {

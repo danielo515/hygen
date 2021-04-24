@@ -1,4 +1,5 @@
 import Logger from '../logger'
+import { runner } from '../index'
 
 jest.mock('enquirer', () => ({
   prompt: null,
@@ -12,14 +13,13 @@ const dirCompare = require('dir-compare')
 const opts = { compareContent: true }
 const fs = require('fs-extra')
 const enquirer = require('enquirer')
-import { runner } from '../index'
 
 const logger = new Logger(console.log)
 const failPrompt = () => {
   throw new Error('set up prompt in testing')
 }
 
-const dir = m => path.join(__dirname, 'metaverse', m)
+const dir = (m) => path.join(__dirname, 'metaverse', m)
 const metaverse = (folder, cmds, promptResponse = null) =>
   it(folder, async () => {
     const metaDir = dir(folder)
@@ -28,8 +28,8 @@ const metaverse = (folder, cmds, promptResponse = null) =>
       templates: '_templates',
       cwd: metaDir,
       exec: (action, body) => {
-        const opts = body && body.length > 0 ? { input: body } : {}
-        return require('execa').command(action, { ...opts, shell: true })
+        const execOpts = body && body.length > 0 ? { input: body } : {}
+        return require('execa').command(action, { ...execOpts, shell: true })
       },
       logger,
       createPrompter: () => require('enquirer'),
@@ -40,7 +40,7 @@ const metaverse = (folder, cmds, promptResponse = null) =>
       console.log('testing', cmd)
       if (
         process.platform === 'win32' &&
-        SKIP_ON_WINDOWS.find(c => cmd[0] === c)
+        SKIP_ON_WINDOWS.find((c) => cmd[0] === c)
       ) {
         console.log(`skipping ${cmd} (windows!)`)
         await fs.remove(path.join(metaDir, 'expected', cmd[0]))
@@ -59,7 +59,7 @@ const metaverse = (folder, cmds, promptResponse = null) =>
         }
       }
       const res = await runner(cmd, config)
-      res.actions.forEach(a => {
+      res.actions.forEach((a) => {
         a.timing = -1
         a.subject = a.subject.replace(/.*hygen\/src/, '')
       })
@@ -72,7 +72,7 @@ const metaverse = (folder, cmds, promptResponse = null) =>
       [expectedDir]: fs.readdirSync(expectedDir),
     })
     const res = dirCompare.compareSync(givenDir, expectedDir, opts)
-    res.diffSet = res.diffSet.filter(d => d.state !== 'equal')
+    res.diffSet = res.diffSet.filter((d) => d.state !== 'equal')
     if (!res.same) {
       console.log(res)
     }
