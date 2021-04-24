@@ -58,13 +58,17 @@ describe('resolver', () => {
       exists,
       load,
     })
-    const config = await resolver.resolve('/foo/bar')
+    const config = await resolver.resolve(path.join('foo', 'bar'))
 
     expect(config).toEqual({ param: 1 })
   })
 
   it('resolves a file in the walk path', async () => {
-    const exists = jest.fn((f) => Promise.resolve(f === '/foo/.hygen.js'))
+    const exists = jest.fn((f) => {
+      console.log('f', f)
+
+      return Promise.resolve(f.match(path.join('foo', '.hygen.js')))
+    })
 
     const load = jest.fn()
     load.mockReturnValue(Promise.resolve({ param: 1 }))
@@ -74,7 +78,7 @@ describe('resolver', () => {
       exists,
       load,
     })
-    const config = await resolver.resolve('/foo/bar')
+    const config = await resolver.resolve(path.join('foo', 'bar'))
 
     expect(config).toEqual({ param: 1 })
   })
