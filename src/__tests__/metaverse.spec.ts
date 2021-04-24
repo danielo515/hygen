@@ -21,7 +21,7 @@ const failPrompt = () => {
 
 const dir = (m) => path.join(__dirname, 'metaverse', m)
 const metaverse = (folder, cmds, promptResponse = null) =>
-  it(folder, async () => {
+  describe(folder, async () => {
     const metaDir = dir(folder)
     console.log('metaverse test in:', metaDir)
     const config = {
@@ -47,36 +47,41 @@ const metaverse = (folder, cmds, promptResponse = null) =>
         continue
       }
 
-      enquirer.prompt = failPrompt
-      if (promptResponse) {
-        const last = cmd[cmd.length - 1]
-        if (typeof last === 'object') {
-          cmd = cmd.slice(cmd.length - 1)
-          enquirer.prompt = () =>
-            Promise.resolve({ ...promptResponse, ...last })
-        } else {
-          enquirer.prompt = () => Promise.resolve(promptResponse)
+      it(folder + cmd.join('-'), async () => {
+        enquirer.prompt = failPrompt
+        if (promptResponse) {
+          const last = cmd[cmd.length - 1]
+          if (typeof last === 'object') {
+            cmd = cmd.slice(cmd.length - 1)
+            enquirer.prompt = () =>
+              Promise.resolve({ ...promptResponse, ...last })
+          } else {
+            enquirer.prompt = () => Promise.resolve(promptResponse)
+          }
         }
-      }
-      const res = await runner(cmd, config)
-      res.actions.forEach((a) => {
-        a.timing = -1
-        a.subject = a.subject.replace(/.*hygen\/src/, '')
+        const res = await runner(cmd, config)
+        res.actions.forEach((a) => {
+          a.timing = -1
+          a.subject = a.subject.replace(/.*hygen\/src/, '')
+        })
+        expect(res).toMatchSnapshot(cmd.join(' '))
       })
-      expect(res).toMatchSnapshot(cmd.join(' '))
     }
-    const givenDir = path.join(metaDir, 'given')
-    const expectedDir = path.join(metaDir, 'expected')
-    console.log('after', {
-      [givenDir]: fs.readdirSync(givenDir),
-      [expectedDir]: fs.readdirSync(expectedDir),
+
+    it(`${folder}-folders`, async () => {
+      const givenDir = path.join(metaDir, 'given')
+      const expectedDir = path.join(metaDir, 'expected')
+      console.log('after', {
+        [givenDir]: fs.readdirSync(givenDir),
+        [expectedDir]: fs.readdirSync(expectedDir),
+      })
+      const res = dirCompare.compareSync(givenDir, expectedDir, opts)
+      res.diffSet = res.diffSet.filter((d) => d.state !== 'equal')
+      if (!res.same) {
+        console.log(res)
+      }
+      expect(res.same).toEqual(true)
     })
-    const res = dirCompare.compareSync(givenDir, expectedDir, opts)
-    res.diffSet = res.diffSet.filter((d) => d.state !== 'equal')
-    if (!res.same) {
-      console.log(res)
-    }
-    expect(res.same).toEqual(true)
   })
 
 describe('metaverse', () => {
