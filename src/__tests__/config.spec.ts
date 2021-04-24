@@ -67,7 +67,7 @@ describe('resolver', () => {
     const exists = jest.fn((f) => {
       console.log('f', f)
 
-      return Promise.resolve(f.match(path.join('foo', '.hygen.js')))
+      return Promise.resolve(f.includes(path.join('foo', '.hygen.js')))
     })
 
     const load = jest.fn()
