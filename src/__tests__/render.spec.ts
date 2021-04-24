@@ -24,7 +24,7 @@ describe('render ng', () => {
     // setup
     const expectedVariableText = /You owe 17/
     const expectedFileName = /full/
-    const expectedFilePath = path.join('foo', 'someone', 'bar')
+    const expectedFilePath = 'foo/someone/bar'
     // act
     const actual = await render(
       {
