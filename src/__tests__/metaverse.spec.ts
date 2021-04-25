@@ -31,60 +31,58 @@ const createConfig = (metaDir) => ({
 })
 const dir = (m) => path.join(__dirname, 'metaverse', m)
 
-const metaverse = (folder, cmds, promptResponse = null) =>
-  describe(folder, async () => {
-    const metaDir = dir(folder)
-    console.log('metaverse test in:', metaDir)
-    const config = createConfig(metaDir)
-    console.log('before', fs.readdirSync(metaDir))
+const metaverse = async (folder, cmds, promptResponse = null) => {
+  const metaDir = dir(folder)
+  console.log('metaverse test in:', metaDir)
+  const config = createConfig(metaDir)
+  console.log('before', fs.readdirSync(metaDir))
 
-    for (let cmd of cmds) {
-      console.log('testing', cmd)
-      if (
-        process.platform === 'win32' &&
-        SKIP_ON_WINDOWS.find((c) => cmd[0] === c)
-      ) {
-        console.log(`skipping ${cmd} (windows!)`)
-        await fs.remove(path.join(metaDir, 'expected', cmd[0]))
-      } else {
-        it(folder + cmd.join('-'), async () => {
-          enquirer.prompt = failPrompt
-          if (promptResponse) {
-            const last = cmd[cmd.length - 1]
-            if (typeof last === 'object') {
-              cmd = cmd.slice(cmd.length - 1)
-              enquirer.prompt = () =>
-                Promise.resolve({ ...promptResponse, ...last })
-            } else {
-              enquirer.prompt = () => Promise.resolve(promptResponse)
-            }
+  for (let cmd of cmds) {
+    console.log('testing', cmd)
+    if (
+      process.platform === 'win32' &&
+      SKIP_ON_WINDOWS.find((c) => cmd[0] === c)
+    ) {
+      console.log(`skipping ${cmd} (windows!)`)
+      await fs.remove(path.join(metaDir, 'expected', cmd[0]))
+    } else {
+      it(`${folder} ${cmd.join(' ')}`, async () => {
+        enquirer.prompt = failPrompt
+        if (promptResponse) {
+          const last = cmd[cmd.length - 1]
+          if (typeof last === 'object') {
+            cmd = cmd.slice(cmd.length - 1)
+            enquirer.prompt = () =>
+              Promise.resolve({ ...promptResponse, ...last })
+          } else {
+            enquirer.prompt = () => Promise.resolve(promptResponse)
           }
-          const res = await runner(cmd, config)
-          res.actions.forEach((a) => {
-            a.timing = -1
-            a.subject = a.subject.replace(/.*hygen\/src/, '')
-          })
-          expect(res).toMatchSnapshot(`${folder} ${cmd.join(' ')}`)
+        }
+        const res = await runner(cmd, config)
+        res.actions.forEach((a) => {
+          a.timing = -1
+          a.subject = a.subject.replace(/.*hygen\/src/, '')
         })
-      }
-    }
-
-    it(`${folder}-folders`, async () => {
-      const givenDir = path.join(metaDir, 'given')
-      const expectedDir = path.join(metaDir, 'expected')
-      console.log('after', {
-        [givenDir]: fs.readdirSync(givenDir),
-        [expectedDir]: fs.readdirSync(expectedDir),
+        expect(res).toMatchSnapshot()
       })
-      const res = dirCompare.compareSync(givenDir, expectedDir, opts)
-      res.diffSet = res.diffSet.filter((d) => d.state !== 'equal')
-      if (!res.same) {
-        console.log(res)
-      }
-      expect(res.same).toEqual(true)
-    })
-  })
+    }
+  }
 
+  it(`${folder}-folders`, async () => {
+    const givenDir = path.join(metaDir, 'given')
+    const expectedDir = path.join(metaDir, 'expected')
+    console.log('after', {
+      [givenDir]: fs.readdirSync(givenDir),
+      [expectedDir]: fs.readdirSync(expectedDir),
+    })
+    const res = dirCompare.compareSync(givenDir, expectedDir, opts)
+    res.diffSet = res.diffSet.filter((d) => d.state !== 'equal')
+    if (!res.same) {
+      console.log(res)
+    }
+    expect(res.same).toEqual(true)
+  })
+}
 describe('metaverse', () => {
   beforeEach(() => {
     enquirer.prompt = failPrompt
