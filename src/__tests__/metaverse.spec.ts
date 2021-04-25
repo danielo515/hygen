@@ -5,7 +5,7 @@ jest.mock('enquirer', () => ({
   prompt: null,
 }))
 
-const SKIP_ON_WINDOWS = process.platform === 'win32' ? ['shell'] : []
+const SKIP_ON_WINDOWS = process.platform === 'win32' ? [] : []
 
 const path = require('path')
 const dirCompare = require('dir-compare')
