@@ -19,23 +19,25 @@ const failPrompt = () => {
   throw new Error('set up prompt in testing')
 }
 
+const createConfig = (metaDir) => ({
+  templates: '_templates',
+  cwd: metaDir,
+  exec: (action, body) => {
+    const execOpts = body && body.length > 0 ? { input: body } : {}
+    return require('execa').command(action, { ...execOpts, shell: true })
+  },
+  logger,
+  createPrompter: () => require('enquirer'),
+})
 const dir = (m) => path.join(__dirname, 'metaverse', m)
+
 const metaverse = (folder, cmds, promptResponse = null) =>
   describe(folder, async () => {
     const metaDir = dir(folder)
     console.log('metaverse test in:', metaDir)
-    const config = {
-      templates: '_templates',
-      cwd: metaDir,
-      exec: (action, body) => {
-        const execOpts = body && body.length > 0 ? { input: body } : {}
-        return require('execa').command(action, { ...execOpts, shell: true })
-      },
-      logger,
-      createPrompter: () => require('enquirer'),
-    }
-    // await fs.remove(path.join(metaDir, 'given'))
+    const config = createConfig(metaDir)
     console.log('before', fs.readdirSync(metaDir))
+
     for (let cmd of cmds) {
       console.log('testing', cmd)
       if (
@@ -44,28 +46,27 @@ const metaverse = (folder, cmds, promptResponse = null) =>
       ) {
         console.log(`skipping ${cmd} (windows!)`)
         await fs.remove(path.join(metaDir, 'expected', cmd[0]))
-        continue
-      }
-
-      it(folder + cmd.join('-'), async () => {
-        enquirer.prompt = failPrompt
-        if (promptResponse) {
-          const last = cmd[cmd.length - 1]
-          if (typeof last === 'object') {
-            cmd = cmd.slice(cmd.length - 1)
-            enquirer.prompt = () =>
-              Promise.resolve({ ...promptResponse, ...last })
-          } else {
-            enquirer.prompt = () => Promise.resolve(promptResponse)
+      } else {
+        it(folder + cmd.join('-'), async () => {
+          enquirer.prompt = failPrompt
+          if (promptResponse) {
+            const last = cmd[cmd.length - 1]
+            if (typeof last === 'object') {
+              cmd = cmd.slice(cmd.length - 1)
+              enquirer.prompt = () =>
+                Promise.resolve({ ...promptResponse, ...last })
+            } else {
+              enquirer.prompt = () => Promise.resolve(promptResponse)
+            }
           }
-        }
-        const res = await runner(cmd, config)
-        res.actions.forEach((a) => {
-          a.timing = -1
-          a.subject = a.subject.replace(/.*hygen\/src/, '')
+          const res = await runner(cmd, config)
+          res.actions.forEach((a) => {
+            a.timing = -1
+            a.subject = a.subject.replace(/.*hygen\/src/, '')
+          })
+          expect(res).toMatchSnapshot(`${folder} ${cmd.join(' ')}`)
         })
-        expect(res).toMatchSnapshot(cmd.join(' '))
-      })
+      }
     }
 
     it(`${folder}-folders`, async () => {
