@@ -32,21 +32,21 @@ const createConfig = (metaDir) => ({
 const dir = (m) => path.join(__dirname, 'metaverse', m)
 
 const metaverse = async (folder, cmds, promptResponse = null) => {
-  const metaDir = dir(folder)
-  console.log('metaverse test in:', metaDir)
-  const config = createConfig(metaDir)
-  console.log('before', fs.readdirSync(metaDir))
+  it(folder, async () => {
+    const metaDir = dir(folder)
+    console.log('metaverse test in:', metaDir)
+    const config = createConfig(metaDir)
+    console.log('before', fs.readdirSync(metaDir))
 
-  for (let cmd of cmds) {
-    console.log('testing', cmd)
-    if (
-      process.platform === 'win32' &&
-      SKIP_ON_WINDOWS.find((c) => cmd[0] === c)
-    ) {
-      console.log(`skipping ${cmd} (windows!)`)
-      await fs.remove(path.join(metaDir, 'expected', cmd[0]))
-    } else {
-      it(`${folder} ${cmd.join(' ')}`, async () => {
+    for (let cmd of cmds) {
+      console.log('testing', cmd)
+      if (
+        process.platform === 'win32' &&
+        SKIP_ON_WINDOWS.find((c) => cmd[0] === c)
+      ) {
+        console.log(`skipping ${cmd} (windows!)`)
+        await fs.remove(path.join(metaDir, 'expected', cmd[0]))
+      } else {
         enquirer.prompt = failPrompt
         if (promptResponse) {
           const last = cmd[cmd.length - 1]
@@ -63,12 +63,10 @@ const metaverse = async (folder, cmds, promptResponse = null) => {
           a.timing = -1
           a.subject = a.subject.replace(/.*hygen\/src/, '')
         })
-        expect(res).toMatchSnapshot()
-      })
+        expect(res).toMatchSnapshot(`${cmd.join(' ')}`)
+      }
     }
-  }
 
-  it(`${folder}-folders`, async () => {
     const givenDir = path.join(metaDir, 'given')
     const expectedDir = path.join(metaDir, 'expected')
     console.log('after', {
@@ -83,6 +81,7 @@ const metaverse = async (folder, cmds, promptResponse = null) => {
     expect(res.same).toEqual(true)
   })
 }
+
 describe('metaverse', () => {
   beforeEach(() => {
     enquirer.prompt = failPrompt
