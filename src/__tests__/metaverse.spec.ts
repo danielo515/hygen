@@ -5,8 +5,6 @@ jest.mock('enquirer', () => ({
   prompt: null,
 }))
 
-const SKIP_ON_WINDOWS = process.platform === 'win32' ? [] : []
-
 const path = require('path')
 const dirCompare = require('dir-compare')
 
@@ -40,31 +38,23 @@ const metaverse = async (folder, cmds, promptResponse = null) => {
 
     for (let cmd of cmds) {
       console.log('testing', cmd)
-      if (
-        process.platform === 'win32' &&
-        SKIP_ON_WINDOWS.find((c) => cmd[0] === c)
-      ) {
-        console.log(`skipping ${cmd} (windows!)`)
-        await fs.remove(path.join(metaDir, 'expected', cmd[0]))
-      } else {
-        enquirer.prompt = failPrompt
-        if (promptResponse) {
-          const last = cmd[cmd.length - 1]
-          if (typeof last === 'object') {
-            cmd = cmd.slice(cmd.length - 1)
-            enquirer.prompt = () =>
-              Promise.resolve({ ...promptResponse, ...last })
-          } else {
-            enquirer.prompt = () => Promise.resolve(promptResponse)
-          }
+      enquirer.prompt = failPrompt
+      if (promptResponse) {
+        const last = cmd[cmd.length - 1]
+        if (typeof last === 'object') {
+          cmd = cmd.slice(cmd.length - 1)
+          enquirer.prompt = () =>
+            Promise.resolve({ ...promptResponse, ...last })
+        } else {
+          enquirer.prompt = () => Promise.resolve(promptResponse)
         }
-        const res = await runner(cmd, config)
-        res.actions.forEach((a) => {
-          a.timing = -1
-          a.subject = a.subject.replace(/.*hygen\/src/, '')
-        })
-        expect(res).toMatchSnapshot(`${cmd.join(' ')}`)
       }
+      const res = await runner(cmd, config)
+      res.actions.forEach((a) => {
+        a.timing = -1
+        a.subject = a.subject.replace(/.*hygen\/src/, '')
+      })
+      expect(res).toMatchSnapshot(`${cmd.join(' ')}`)
     }
 
     const givenDir = path.join(metaDir, 'given')
@@ -87,6 +77,11 @@ describe('metaverse', () => {
     enquirer.prompt = failPrompt
   })
   metaverse('hygen-extension', [['hygen-js', 'new']], { overwrite: true })
+
+  if (process.platform !== 'win32') {
+    metaverse('hygen-templates-unix', [['shell', 'new', '--name', 'foo']])
+  }
+
   metaverse(
     'hygen-templates',
     [
@@ -97,7 +92,6 @@ describe('metaverse', () => {
       ['overwrite-no', 'over', { overwrite: false }],
       ['mailer', 'new'],
       ['worker', 'new', '--name', 'foo'],
-      ['shell', 'new', '--name', 'foo'],
       ['inflection', 'new', '--name', 'person'],
       ['conditional-rendering', 'new', '--notGiven'],
       ['add-unless-exists', 'new', '--message', 'foo'],
